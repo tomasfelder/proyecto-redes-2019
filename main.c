@@ -52,7 +52,8 @@ int main(int argc, char **argv)
 	servaddr.sin_port = htons(PORT);
 	servaddr.sin_addr.s_addr = INADDR_ANY;
 	
-	int n, len;
+	int n;
+	int len;
 	
 	sendto(sockfd, (const char *)hello, strlen(hello), 
         MSG_CONFIRM, (const struct sockaddr *) &servaddr,  
@@ -61,7 +62,7 @@ int main(int argc, char **argv)
     
     n = recvfrom(sockfd, (char *)buffer, MAXLINE,  
                 MSG_WAITALL, (struct sockaddr *) &servaddr, 
-                &len);
+                (socklen_t *__restrict) &len);
     buffer[n] = '\0';
     printf("Server: %s\n", buffer);
     
