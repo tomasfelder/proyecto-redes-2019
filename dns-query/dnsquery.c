@@ -20,36 +20,42 @@
 #define T_PTR 12 /* domain name pointer */
 #define T_MX 15 //Mail server 
 
-struct DNS_HEADER {
-    unsigned short id; //A 16 bit identifier assigned by the program that generates any kind of query
-    
-	unsigned char qr :1; // A one bit field that specifies whether this message is a query (0), or a response (1).
-	unsigned char opcode :4; //A four bit field that specifies kind of query in this message
-	unsigned char aa :1; //Authoritative Answer - this bit is valid in responses,  authority for the domain name in question section
-	unsigned char tc :1; // TrunCation - specifies that this message was truncated due to length greater than that permitted on the transmission channel
-    unsigned char rd :1; // If RD is set, it directs the name server to pursue the query recursively. Recursive query support is optional.
-    unsigned char ra :1; // Recursion Available - this be is set or cleared in a response, and denotes whether recursive query support is available in the name server.
-    unsigned char z :1; // Reserved for future use.  Must be zero in all queries and responses.
-    unsigned char rcode :4; // Response code - this 4 bit field is set as part of responses.  The values have the following
-
-    unsigned short qdcount; // an unsigned 16 bit integer specifying the number of entries in the question section.
-    unsigned short ancount; // an unsigned 16 bit integer specifying the number of resource records in the answer section.
-    unsigned short nscount; // an unsigned 16 bit integer specifying the number of name server resource records in the authority records section.
-    unsigned short arcount; // an unsigned 16 bit integer specifying the number of resource records in the additional records section.
+struct DNS_HEADER
+{
+    unsigned short id; // identification number
+ 
+    unsigned char rd :1; // recursion desired
+    unsigned char tc :1; // truncated message
+    unsigned char aa :1; // authoritive answer
+    unsigned char opcode :4; // purpose of message
+    unsigned char qr :1; // query/response flag
+ 
+    unsigned char rcode :4; // response code
+    unsigned char z :1; // its z! reserved
+    unsigned char ra :1; // recursion available
+ 
+    unsigned short q_count; // number of question entries
+    unsigned short ans_count; // number of answer entries
+    unsigned short auth_count; // number of authority entries
+    unsigned short add_count; // number of resource entries
 };
 
 struct QUESTION {
-	char* qname;
-	unsigned char qtype :2;
-	unsigned char qclass :2;
+	unsigned short qtype;
+	unsigned short qclass;
 };
 
 int main(int argc, char **argv)
 {
-	unsigned char message[512];
-	struct DNS_HEADER *dns = &message;
-	dns->id = (unsigned short) htons(getpid());
-    dns->qr = 0;
+	unsigned char message[65536];
+	struct DNS_HEADER *dns = NULL;
+    struct QUESTION *question = NULL;
+    int i;
+    
+    dns = (struct DNS_HEADER *)&message;
+ 
+    dns->id = (unsigned short) htons(getpid());
+	dns->qr = 0;
     dns->opcode = 0;
     dns->aa = 0;
     dns->tc = 0;
@@ -57,12 +63,15 @@ int main(int argc, char **argv)
     dns->ra = 0;
     dns->z = 0;
     dns->rcode = 0;
-    dns->qdcount = htons(1);
-    dns->ancount = 0;
-    dns->nscount = 0;
-    dns->arcount = 0;
+    dns->q_count = htons(1); //we have only 1 question
+    dns->ans_count = 0;
+    dns->auth_count = 0;
+    dns->add_count = 0;
     
-    struct QUESTION *question = &message[sizeof(struct DNS_HEADER)];
+    
+    unsigned char* qname =(unsigned char*)&message[sizeof(struct DNS_HEADER)];
+    strcpy(qname,"3www6google3com");
+    question = (struct QUESTION*)&message[sizeof(struct DNS_HEADER) + (strlen((const char*)qname) + 1)];
     question->qtype = htons( T_A );
     question->qclass = htons(1);
 	
@@ -75,28 +84,27 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 	
-	memset(&servaddr,0,sizeof(servaddr));
-	
 	servaddr.sin_family = AF_INET;
 	servaddr.sin_port = htons(PORT);
 	servaddr.sin_addr.s_addr = inet_addr("192.168.242.2");
 	
 	printf("\nSending Packet...\n");
-    if( sendto(sockfd,(char*)message,sizeof(struct DNS_HEADER) + sizeof(question),0,(struct sockaddr*)&servaddr,sizeof(servaddr)) < 0)
+		
+    if( sendto(sockfd,(char*)message,sizeof(struct DNS_HEADER) + (strlen((const char*)qname)+1) + sizeof(struct QUESTION),0,(struct sockaddr*)&servaddr,sizeof(servaddr)) < 0)
     {
         perror("sendto failed");
     }
+    printf("Done");
+    printf("\nReceiving answer...");
+    i = sizeof servaddr;
+    printf("\nReceiving answer...");
+    if(recvfrom (sockfd,(char*)message , 65536 , 0 , (struct sockaddr*)&servaddr , (socklen_t*)&i ) < 0)
+    {
+        perror("recvfrom failed");
+    }
     printf("Done\n");
-    
-    int n, len;
-    n = recvfrom(sockfd, (char *)message, 512,  
-                MSG_WAITALL, (struct sockaddr *) &servaddr, 
-                &len);
-    if (n < 0)
-		perror("recvfrom failed");
-	printf("Done\n");
-	printf("%s",message);
 	return 0;
 	
 }
+
 
