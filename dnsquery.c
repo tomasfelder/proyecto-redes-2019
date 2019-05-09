@@ -8,7 +8,7 @@
 #include <arpa/inet.h> 
 #include <netinet/in.h> 
 
-#define PORT     53 
+#define PORT 53 
 #define MAXLINE 1024
 
 //Types of DNS resource records :)
@@ -31,6 +31,8 @@ struct DNS_HEADER
     unsigned char qr :1; // query/response flag
  
     unsigned char rcode :4; // response code
+    unsigned char cd :1; // checking disabled
+    unsigned char ad :1; // authenticated data
     unsigned char z :1; // its z! reserved
     unsigned char ra :1; // recursion available
  
@@ -45,9 +47,11 @@ struct QUESTION {
 	unsigned short qclass;
 };
 
+void changeDomainFormat(char * regularDomain, unsigned char * dnsDomain);
+
 int main(int argc, char **argv)
 {
-	unsigned char message[65536];
+	unsigned char message[512],*response;
 	struct DNS_HEADER *dns = NULL;
     struct QUESTION *question = NULL;
     int i;
@@ -55,13 +59,15 @@ int main(int argc, char **argv)
     dns = (struct DNS_HEADER *)&message;
  
     dns->id = (unsigned short) htons(getpid());
-	dns->qr = 0;
-    dns->opcode = 0;
-    dns->aa = 0;
-    dns->tc = 0;
-    dns->rd = 1;
-    dns->ra = 0;
+    dns->qr = 0; //This is a query
+    dns->opcode = 0; //This is a standard query
+    dns->aa = 0; //Not Authoritative
+    dns->tc = 0; //This message is not truncated
+    dns->rd = 1; //Recursion Desired
+    dns->ra = 0; //Recursion not available! hey we dont have it (lol)
     dns->z = 0;
+    dns->ad = 0;
+    dns->cd = 0;
     dns->rcode = 0;
     dns->q_count = htons(1); //we have only 1 question
     dns->ans_count = 0;
@@ -70,7 +76,7 @@ int main(int argc, char **argv)
     
     
     unsigned char* qname =(unsigned char*)&message[sizeof(struct DNS_HEADER)];
-    strcpy(qname,"3www6google3com");
+    changeDomainFormat("www.google.com",qname);
     question = (struct QUESTION*)&message[sizeof(struct DNS_HEADER) + (strlen((const char*)qname) + 1)];
     question->qtype = htons( T_A );
     question->qclass = htons(1);
@@ -86,25 +92,58 @@ int main(int argc, char **argv)
 	
 	servaddr.sin_family = AF_INET;
 	servaddr.sin_port = htons(PORT);
-	servaddr.sin_addr.s_addr = inet_addr("192.168.242.2");
+	servaddr.sin_addr.s_addr = inet_addr("192.168.140.2");
 	
 	printf("\nSending Packet...\n");
-		
-    if( sendto(sockfd,(char*)message,sizeof(struct DNS_HEADER) + (strlen((const char*)qname)+1) + sizeof(struct QUESTION),0,(struct sockaddr*)&servaddr,sizeof(servaddr)) < 0)
+	if( sendto(sockfd,(char*)message,sizeof(struct DNS_HEADER) + (strlen((const char*)qname)+1) + sizeof(struct QUESTION),0,(struct sockaddr*)&servaddr,sizeof(servaddr)) < 0)
     {
         perror("sendto failed");
     }
     printf("Done");
-    printf("\nReceiving answer...");
+     
+    //Receive the answer
     i = sizeof servaddr;
     printf("\nReceiving answer...");
-    if(recvfrom (sockfd,(char*)message , 65536 , 0 , (struct sockaddr*)&servaddr , (socklen_t*)&i ) < 0)
+    if(recvfrom (sockfd,(char*)message , 512 , 0 , (struct sockaddr*)&servaddr , (socklen_t*)&i ) < 0)
     {
         perror("recvfrom failed");
     }
-    printf("Done\n");
+    printf("Done");
+    
+    dns = (struct DNS_HEADER*) message;
+    response = &message[sizeof(struct DNS_HEADER) + (strlen((const char*)qname)+1) + sizeof(struct QUESTION)];
+ 
+    printf("\nThe response contains : ");
+    printf("\n %d Questions.",ntohs(dns->q_count));
+    printf("\n %d Answers.",ntohs(dns->ans_count));
+    printf("\n %d Authoritative Servers.",ntohs(dns->auth_count));
+    printf("\n %d Additional records.\n\n",ntohs(dns->add_count));
+    
 	return 0;
 	
 }
 
-
+void changeDomainFormat(char * regularDomain, unsigned char * dnsDomain){
+	int domainLength = strlen(regularDomain);
+	char * part = regularDomain;
+	int count = 0;
+	int i;
+	for(i = 0;i <= domainLength ; i++){
+		if(*regularDomain == '.' || i == domainLength){
+			int j;
+			*dnsDomain++ = count + 0;
+			for(j = 0;j<count;j++){
+				*dnsDomain++ = *part++;
+			}
+			part++;
+			count = 0;
+		}
+		else {
+			count++;
+			
+		}
+		regularDomain++;
+	}
+	*dnsDomain++ = 0;
+	*dnsDomain = '\0';
+}
