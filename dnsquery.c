@@ -47,7 +47,24 @@ struct QUESTION {
 	unsigned short qclass;
 };
 
+struct R_DATA
+{
+    unsigned short type;
+    unsigned short _class;
+    unsigned int ttl;
+    unsigned short data_len;
+};
+
+struct RES_RECORD
+{
+    unsigned char *name;
+    struct R_DATA *resource;
+    unsigned char *rdata;
+};
+
+
 void changeDomainFormat(char * regularDomain, unsigned char * dnsDomain);
+unsigned char* readAnswerName(unsigned char *,unsigned char*,int *);
 
 int main(int argc, char **argv)
 {
@@ -112,15 +129,75 @@ int main(int argc, char **argv)
     
     dns = (struct DNS_HEADER*) message;
     response = &message[sizeof(struct DNS_HEADER) + (strlen((const char*)qname)+1) + sizeof(struct QUESTION)];
- 
+	
+	int answersCount = ntohs(dns->ans_count);
     printf("\nThe response contains : ");
     printf("\n %d Questions.",ntohs(dns->q_count));
-    printf("\n %d Answers.",ntohs(dns->ans_count));
+    printf("\n %d Answers.",answersCount);
     printf("\n %d Authoritative Servers.",ntohs(dns->auth_count));
     printf("\n %d Additional records.\n\n",ntohs(dns->add_count));
     
+    struct RES_RECORD answers[answersCount];
+    
+    int nextPart;
+    for(i = 0 ; i < answersCount ; i++){
+		answers[i].name = readAnswerName(response,message,&nextPart);
+		printf("%s\n",answers[i].name);
+	}
+	
 	return 0;
 	
+}
+
+unsigned char * readAnswerName(unsigned char* response,unsigned char* message, int* nextPart){
+	
+    unsigned char *domainName;
+    unsigned int jumped=0,offset;
+    int i , j, number, count;
+ 
+    *nextPart = 1;
+    count = 0;
+    domainName = (unsigned char*)malloc(256);
+ 
+    while(*response!=0)
+    {
+        if(*response>=192)
+        {
+			printf("Entro offset\n");
+            offset = (*response)*256 + *(response+1) - 49152; //49152 = 11000000 00000000 ;)
+            response = message + offset - 1;
+            jumped = 1; //we have jumped to another location so counting wont go up!
+        }
+        else
+        {
+            domainName[count++] = *response;
+        }
+ 
+        response++;
+ 
+        if(jumped==0)
+        {
+            *nextPart = *nextPart + 1; //if we havent jumped to another location then we can count up
+        }
+    }
+    domainName[count] = '\0'; //string complete
+    if(jumped==1)
+    {
+        *nextPart = *nextPart + 1; //number of steps we actually moved forward in the packet
+    }
+	int domainNameLength = strlen((char *) domainName);
+    for(i=0 ; i<domainNameLength ; i++) 
+    {
+        number=domainName[i];
+        for(j=0 ; j < number ; j++) 
+        {
+            domainName[i] = domainName[i+1];
+            i=i+1;
+        }
+        domainName[i] ='.';
+    }
+    domainName[i-1]='\0'; //remove the last dot
+    return domainName;
 }
 
 void changeDomainFormat(char * regularDomain, unsigned char * dnsDomain){
