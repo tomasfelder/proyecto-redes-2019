@@ -93,7 +93,7 @@ int main(int argc, char **argv)
     
     
     unsigned char* qname =(unsigned char*)&message[sizeof(struct DNS_HEADER)];
-    changeDomainFormat("www.google.com",qname);
+    changeDomainFormat("google.com",qname);
     question = (struct QUESTION*)&message[sizeof(struct DNS_HEADER) + (strlen((const char*)qname) + 1)];
     question->qtype = htons( T_A );
     question->qclass = htons(1);
@@ -139,10 +139,47 @@ int main(int argc, char **argv)
     
     struct RES_RECORD answers[answersCount];
     
-    int nextPart;
+    int nextPart = 0;
     for(i = 0 ; i < answersCount ; i++){
 		answers[i].name = readAnswerName(response,message,&nextPart);
-		printf("%s\n",answers[i].name);
+		printf("%i\n",nextPart);
+		
+		response = response + nextPart;
+		
+		answers[i].resource = (struct R_DATA*)(response);
+        response = response + sizeof(struct R_DATA);
+ 
+        if(ntohs(answers[i].resource->type) == 1) //if its an ipv4 address
+        {
+            answers[i].rdata = (unsigned char*)malloc(ntohs(answers[i].resource->data_len));
+			int j;
+            for(j=0 ; j<ntohs(answers[i].resource->data_len) ; j++)
+            {
+                answers[i].rdata[j]=response[j];
+            }
+ 
+            answers[i].rdata[ntohs(answers[i].resource->data_len)] = '\0';
+ 
+            response = response + ntohs(answers[i].resource->data_len);
+        }
+        else
+        {
+            //answers[i].rdata = ReadName(reader,buf,&stop);
+            //reader = reader + stop;
+        }
+        
+	}
+	printf("\nAnswer Records : %d \n" , ntohs(dns->ans_count) );
+	for(i = 0 ; i < answersCount ; i++){
+		printf("Name : %s ",answers[i].name);
+ 
+        if( ntohs(answers[i].resource->type) == T_A) //IPv4 address
+        {
+            long *p;
+            p=(long*)answers[i].rdata;
+            servaddr.sin_addr.s_addr=(*p); //working without ntohl
+            printf("has IPv4 address : %s\n",inet_ntoa(servaddr.sin_addr));
+        }
 	}
 	
 	return 0;
@@ -163,7 +200,6 @@ unsigned char * readAnswerName(unsigned char* response,unsigned char* message, i
     {
         if(*response>=192)
         {
-			printf("Entro offset\n");
             offset = (*response)*256 + *(response+1) - 49152; //49152 = 11000000 00000000 ;)
             response = message + offset - 1;
             jumped = 1; //we have jumped to another location so counting wont go up!
