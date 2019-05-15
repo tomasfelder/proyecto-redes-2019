@@ -93,7 +93,7 @@ int main(int argc, char **argv)
     
     
     unsigned char* qname =(unsigned char*)&message[sizeof(struct DNS_HEADER)];
-    changeDomainFormat("google.com",qname);
+    changeDomainFormat("cs.uns.edu.ar",qname);
     question = (struct QUESTION*)&message[sizeof(struct DNS_HEADER) + (strlen((const char*)qname) + 1)];
     question->qtype = htons( T_A );
     question->qclass = htons(1);
@@ -137,12 +137,11 @@ int main(int argc, char **argv)
     printf("\n %d Authoritative Servers.",ntohs(dns->auth_count));
     printf("\n %d Additional records.\n\n",ntohs(dns->add_count));
     
-    struct RES_RECORD answers[answersCount];
+    struct RES_RECORD answers[20];
     
     int nextPart = 0;
     for(i = 0 ; i < answersCount ; i++){
 		answers[i].name = readAnswerName(response,message,&nextPart);
-		printf("%i\n",nextPart);
 		
 		response = response + nextPart;
 		
@@ -155,9 +154,9 @@ int main(int argc, char **argv)
 			int j;
             for(j=0 ; j<ntohs(answers[i].resource->data_len) ; j++)
             {
-                answers[i].rdata[j]=response[j];
+                answers[i].rdata[j]=response[j-2];
             }
- 
+
             answers[i].rdata[ntohs(answers[i].resource->data_len)] = '\0';
  
             response = response + ntohs(answers[i].resource->data_len);
@@ -175,10 +174,13 @@ int main(int argc, char **argv)
  
         if( ntohs(answers[i].resource->type) == T_A) //IPv4 address
         {
-            long *p;
-            p=(long*)answers[i].rdata;
-            servaddr.sin_addr.s_addr=(*p); //working without ntohl
-            printf("has IPv4 address : %s\n",inet_ntoa(servaddr.sin_addr));
+			printf("has IPv4 address: ");
+            int j;
+            for(j=0 ; j<ntohs(answers[i].resource->data_len) ; j++)
+            {
+				printf("%i.",answers[i].rdata[j]);
+            }
+            printf("\n");
         }
 	}
 	
