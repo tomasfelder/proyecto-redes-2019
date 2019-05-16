@@ -44,9 +44,9 @@ int prepareDnsHeader(){
     dns->add_count = 0;
     
     qname =(unsigned char*)&message[sizeof(struct DNS_HEADER)];
-    changeDomainFormat("SW1A2AA.find.me.uk",qname);
+    changeDomainFormat("google.com",qname);
     question = (struct QUESTION*)&message[sizeof(struct DNS_HEADER) + (strlen((const char*)qname) + 1)];
-    question->qtype = htons( T_A );
+    question->qtype = htons( T_MX );
     question->qclass = htons(1);
     
     return sizeof(struct DNS_HEADER) + (strlen((const char*)qname)+1) + sizeof(struct QUESTION);
@@ -93,24 +93,25 @@ void parseAnswer(int sizeOfHeader){
 	int authoritativeCount = ntohs(dns->auth_count);
 	int additionalRecordsCount = ntohs(dns->add_count);
     printf("\n;; Got answer:\n");
-	printf(";; ->>HEADER<<- opcode: QUERY, status: NOERROR\n");
+	printf(";; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: %u\n",getpid());
 	printf(";; flags: qr rd ra; QUERY: %i, ANSWER: %i, AUTHORITY: %i, ADDITIONAL: %i\n\n",questionsCount,answersCount,authoritativeCount,additionalRecordsCount);
 	printf(";; QUESTION SECTION:\n");
 	printf(";%s			IN	A\n",qname);
     
-    struct RESOURCE_RECORD answers[answersCount];
+    struct RESOURCE_RECORD answers[answersCount],additionals[additionalRecordsCount];
     
+    //Answers
     for(i = 0 ; i < answersCount ; i++){
 		int nextPart = 0;
 		answers[i].name = readAnswerName(response,message,&nextPart);
-		//printf("Name: %s\n",answers[i].name);
 		response = response + nextPart;
 		
 		answers[i].resource = (struct RESOURCE_RECORD_METADATA*)(response);
-        response = response + sizeof(struct RESOURCE_RECORD_METADATA);
+        response = response + sizeof(struct RESOURCE_RECORD_METADATA) - 2;
 		
 		int resourceDataLength = ntohs(answers[i].resource->data_len);
-		answers[i].rdata = (unsigned char*)malloc(resourceDataLength - sizeof(short));
+		
+		answers[i].rdata = (unsigned char*)malloc(resourceDataLength);
 		
         if(ntohs(answers[i].resource->type) == T_A) //if its an ipv4 address
         {
@@ -119,29 +120,82 @@ void parseAnswer(int sizeOfHeader){
         else
         {
 			if(ntohs(answers[i].resource->type) == T_MX){
+				*answers[i].rdata = *(response+1);
 				response+=sizeof(short);
+				answers[i].rdata+=sizeof(short);
 				int nextPart = 0;
 				answers[i].rdata = readAnswerName(response,message,&nextPart);
-				printf("Answer: %s\n",answers[i].rdata);
+				answers[i].rdata-=sizeof(short);
 				response = response + nextPart;
 			}
         }
 	}
+	
+	//Additionals
+    for(i=0;i<additionalRecordsCount;i++)
+    {
+        int nextPart = 0;
+		additionals[i].name = readAnswerName(response,message,&nextPart);
+		response = response + nextPart;
+ 
+        additionals[i].resource = (struct RESOURCE_RECORD_METADATA*)(response);
+        response = response + sizeof(struct RESOURCE_RECORD_METADATA) - 2;
+		
+		int resourceDataLength = ntohs(additionals[i].resource->data_len);
+		additionals[i].rdata = (unsigned char*)malloc(resourceDataLength);
+		
+        if(ntohs(additionals[i].resource->type)==T_A)
+        {
+            readIPv4Address(resourceDataLength,additionals[i].rdata);
+        }
+    }
+	
 	printf("\n;; ANSWER SECTION:\n");
 	for(i = 0 ; i < answersCount ; i++){
-
-		printf("%s		5	IN	A	",answers[i].name);
  
         if( ntohs(answers[i].resource->type) == T_A) //IPv4 address
         {
+			printf("%s		5	IN	A	",answers[i].name);
             int j;
             for(j=0 ; j< ntohs(answers[i].resource->data_len) ; j++)
             {
-				printf("%i.",answers[i].rdata[j]);
+				if(j+1 == ntohs(answers[i].resource->data_len))
+					printf("%i",answers[i].rdata[j]);
+				else
+					printf("%i.",answers[i].rdata[j]);
             }
-            printf("\n\n");
+            printf("\n");
         }
+        if(ntohs(answers[i].resource->type) == T_MX){
+			printf("%s		5	IN	MX	",answers[i].name);
+			//printf("%c ",*(answers[i].rdata));
+			printf("%s\n",answers[i].rdata+sizeof(short));
+		}
 	}
+	if(additionalRecordsCount>0){
+		printf("\n;; ADDITIONAL SECTION:\n");
+		for(i = 0 ; i < additionalRecordsCount ; i++){
+	 
+			if( ntohs(additionals[i].resource->type) == T_A) //IPv4 address
+			{
+				if(i==0)
+					printf("%s		5	IN	A	",additionals[i].name);
+				else
+					printf("%s	5	IN	A	",additionals[i].name);
+				int j;
+				for(j=0 ; j< ntohs(additionals[i].resource->data_len) ; j++)
+				{
+					if(j+1 == ntohs(additionals[i].resource->data_len))
+						printf("%i",additionals[i].rdata[j]);
+					else
+						printf("%i.",additionals[i].rdata[j]);
+				}
+				printf("\n");
+			}
+		}
+	}
+	
+	printf("\n");
 }
 
 unsigned char * readAnswerName(unsigned char* response,unsigned char* message, int* nextPart){
@@ -190,7 +244,6 @@ unsigned char * readAnswerName(unsigned char* response,unsigned char* message, i
         }
         domainName[i] ='.';
     }
-    domainName[i-1]='\0'; //remove the last dot
     return domainName;
 }
 
@@ -198,14 +251,20 @@ void readIPv4Address(int resourceDataLength,unsigned char* rdata){
 	int j;
     for(j=0 ; j<resourceDataLength ; j++)
     {
-		rdata[j]=response[j-2];
+		rdata[j]=response[j];
     }
 	rdata[resourceDataLength] = '\0';
 	response = response + resourceDataLength;
 }
 
 void readMXFormat(int resourceDataLength,unsigned char* rdata){
-	
+	*rdata = *(response+1);
+	response+=sizeof(short);
+	rdata+=sizeof(short);
+	int nextPart = 0;
+	rdata = readAnswerName(response,message,&nextPart);
+	printf("Answer: %s\n",rdata);
+	response = response + nextPart;
 }
 
 void changeDomainFormat(char * regularDomain, unsigned char * dnsDomain){
