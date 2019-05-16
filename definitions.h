@@ -3,6 +3,7 @@
  
 #define T_A 1 //Ipv4 address
 #define T_MX 15 //Mail server 
+#define T_LOC 29
 
 struct DNS_HEADER
 {

@@ -44,7 +44,7 @@ int prepareDnsHeader(){
     dns->add_count = 0;
     
     qname =(unsigned char*)&message[sizeof(struct DNS_HEADER)];
-    changeDomainFormat("cs.uns.edu.ar",qname);
+    changeDomainFormat("SW1A2AA.find.me.uk",qname);
     question = (struct QUESTION*)&message[sizeof(struct DNS_HEADER) + (strlen((const char*)qname) + 1)];
     question->qtype = htons( T_A );
     question->qclass = htons(1);
@@ -100,17 +100,17 @@ void parseAnswer(int sizeOfHeader){
     
     struct RESOURCE_RECORD answers[answersCount];
     
-    int nextPart = 0;
     for(i = 0 ; i < answersCount ; i++){
+		int nextPart = 0;
 		answers[i].name = readAnswerName(response,message,&nextPart);
-		
+		//printf("Name: %s\n",answers[i].name);
 		response = response + nextPart;
 		
 		answers[i].resource = (struct RESOURCE_RECORD_METADATA*)(response);
         response = response + sizeof(struct RESOURCE_RECORD_METADATA);
 		
 		int resourceDataLength = ntohs(answers[i].resource->data_len);
-		answers[i].rdata = (unsigned char*)malloc(resourceDataLength);
+		answers[i].rdata = (unsigned char*)malloc(resourceDataLength - sizeof(short));
 		
         if(ntohs(answers[i].resource->type) == T_A) //if its an ipv4 address
         {
@@ -119,7 +119,11 @@ void parseAnswer(int sizeOfHeader){
         else
         {
 			if(ntohs(answers[i].resource->type) == T_MX){
-				readMXFormat();
+				response+=sizeof(short);
+				int nextPart = 0;
+				answers[i].rdata = readAnswerName(response,message,&nextPart);
+				printf("Answer: %s\n",answers[i].rdata);
+				response = response + nextPart;
 			}
         }
 	}
@@ -201,8 +205,7 @@ void readIPv4Address(int resourceDataLength,unsigned char* rdata){
 }
 
 void readMXFormat(int resourceDataLength,unsigned char* rdata){
-	rdata = rdata + sizeof(short);
-	printf("%s\n",rdata);
+	
 }
 
 void changeDomainFormat(char * regularDomain, unsigned char * dnsDomain){
