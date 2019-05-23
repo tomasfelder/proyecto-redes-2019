@@ -1,9 +1,5 @@
 #define PORT 53 
 #define MAXLINE 1024
- 
-#define T_A 1 //Ipv4 address
-#define T_MX 15 //Mail server 
-#define T_LOC 29
 
 struct DNS_HEADER
 {
@@ -36,7 +32,7 @@ struct RESOURCE_RECORD_METADATA
 {
     unsigned short type;
     unsigned short _class;
-    unsigned int ttl;
+    int ttl;
     unsigned short data_len;
 };
 
@@ -47,11 +43,24 @@ struct RESOURCE_RECORD
     unsigned char *rdata;
 };
 
+struct SOA
+{
+	unsigned int serial;
+	int refresh;
+	int retry;
+	int expire;
+	unsigned int minimum;
+};
 
 void changeDomainFormat(char * regularDomain, unsigned char * dnsDomain);
-unsigned char* readAnswerName(unsigned char *,unsigned char*,int *);
 int prepareDnsHeader();
 void sendAndReceiveFromSocket();
+void readAnswerName();
 void parseAnswer();
 void readIPv4Address();
+void readIPv6Address();
 void readMXFormat();
+void readSOAFormat();
+void printLocalTime();
+const char *precsize_ntoa(u_int8_t prec);
+void readLOCFormat();
