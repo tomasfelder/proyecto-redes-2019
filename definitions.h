@@ -1,26 +1,28 @@
 #define PORT 53 
-#define MAXLINE 1024
+
+const char* const ERRORS[] = { "NOERROR", "FORMERR","SERVFAIL","NXDOMAIN","NOTIMP","REFUSED","YXDOMAIN","YXRRSET","NXRRSET","NOTAUTH","NOTZONE" };
+const char* const TYPES[] = { "A", "MX","LOC" };
 
 struct DNS_HEADER
 {
-    unsigned short id; // identification number
+    unsigned short id; /*%< query identification number */
  
-    unsigned char rd :1; // recursion desired
-    unsigned char tc :1; // truncated message
-    unsigned char aa :1; // authoritive answer
-    unsigned char opcode :4; // purpose of message
-    unsigned char qr :1; // query/response flag
+	unsigned	rd :1;		/*%< recursion desired */
+	unsigned	tc :1;		/*%< truncated message */
+	unsigned	aa :1;		/*%< authoritive answer */
+	unsigned	opcode :4;	/*%< purpose of message */
+	unsigned	qr :1;		/*%< response flag */
  
-    unsigned char rcode :4; // response code
-    unsigned char cd :1; // checking disabled
-    unsigned char ad :1; // authenticated data
-    unsigned char z :1; // its z! reserved
-    unsigned char ra :1; // recursion available
+	unsigned	rcode :4;	/*%< response code */
+	unsigned	cd: 1;		/*%< checking disabled by resolver */
+	unsigned	ad: 1;		/*%< authentic data from named */
+	unsigned	unused :1;	/*%< unused bits (MBZ as of 4.9.3a3) */
+	unsigned	ra :1;		/*%< recursion available */
  
-    unsigned short q_count; // number of question entries
-    unsigned short ans_count; // number of answer entries
-    unsigned short auth_count; // number of authority entries
-    unsigned short add_count; // number of resource entries
+	unsigned	qdcount :16;	/*%< number of question entries */
+	unsigned	ancount :16;	/*%< number of answer entries */
+	unsigned	nscount :16;	/*%< number of authority entries */
+	unsigned	arcount :16;	/*%< number of resource entries */
 };
 
 struct QUESTION {
@@ -52,15 +54,26 @@ struct SOA
 	unsigned int minimum;
 };
 
+void initializeVariables(char **argv);
+int resolveRecursive(char* queryName, unsigned short queryType);
+void resolveIterative(char* queryName, unsigned short queryType);
+int prepareDnsHeader(char* queryName, unsigned short queryType);
 void changeDomainFormat(char * regularDomain, unsigned char * dnsDomain);
-int prepareDnsHeader();
-void sendAndReceiveFromSocket();
-void readAnswerName();
-void parseAnswer();
-void readIPv4Address();
-void readIPv6Address();
-void readMXFormat();
-void readSOAFormat();
+void sendAndReceiveFromSocket(int sizeOfMessage);
+int parseResponse(int sizeOfHeader);
+void parseRecursiveMethod(struct RESOURCE_RECORD answers[],struct RESOURCE_RECORD additionals[],struct RESOURCE_RECORD authorities[],int answersCount, int additionalRecordsCount, int authoritativeCount, int questionsCount);
+int parseIterativeMethod(struct RESOURCE_RECORD answers[],struct RESOURCE_RECORD additionals[],struct RESOURCE_RECORD authorities[],int answersCount, int additionalRecordsCount, int authoritativeCount, int questionsCount);
+void readResourceRecords(struct RESOURCE_RECORD resourceRecords[],int resourceRecordsCount);
+void readAnswerName(unsigned char* response,unsigned char* message, int* nextPart,unsigned char * domainName);
+void readIPv4Address(int resourceDataLength,unsigned char* rdata);
+void printIPv4Address(struct RESOURCE_RECORD * answers);
+void readIPv6Address(int resourceDataLength,unsigned char* rdata);
+void readSOAFormat(int resourceDataLength,unsigned char* rdata);
+void readMXFormat(unsigned char* rdata);
+void printMXFormat(struct RESOURCE_RECORD * answers);
+void readNSFormat(struct RESOURCE_RECORD * answers);
+void readCNAMEFormat(struct RESOURCE_RECORD * answers);
 void printLocalTime();
+char* convert(uint8_t *a);
+void readLOCFormat(const unsigned char *binary,struct RESOURCE_RECORD * answers);
 const char *precsize_ntoa(u_int8_t prec);
-void readLOCFormat();
