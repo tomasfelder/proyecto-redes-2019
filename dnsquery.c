@@ -130,19 +130,29 @@ void sendAndReceiveFromSocket(int sizeOfMessage){
 	servaddr.sin_port = htons(port);
 	servaddr.sin_addr.s_addr = inet_addr(server);
 	
-	struct timeval start, end;
+	struct timeval start, end, timeout;
+	timeout.tv_sec = 10;
+    timeout.tv_usec = 0;
 
+	if (setsockopt (sockfd, SOL_SOCKET, SO_RCVTIMEO, (char *)&timeout, sizeof(timeout)) < 0)
+        fprintf(stderr, "setsockopt failed\n");
+
+    if (setsockopt (sockfd, SOL_SOCKET, SO_SNDTIMEO, (char *)&timeout, sizeof(timeout)) < 0)
+        fprintf(stderr, "setsockopt failed\n");
+	
 	gettimeofday(&start, NULL);
 
 	if( sendto(sockfd,(char*)message,sizeOfMessage,0,(struct sockaddr*)&servaddr,sizeof(servaddr)) < 0)
     {
-        perror("sendto failed");
+        perror("Send timeout expired\n");
+        exit(-1);
     }
     
     i = sizeof servaddr;
     if((sizeOfAnswer = recvfrom (sockfd,(char*)message , 512 , 0 , (struct sockaddr*)&servaddr , (socklen_t*)&i )) < 0)
     {
-        perror("recvfrom failed");
+        perror("Recive timeout expired\n");
+        exit(-1);
     }
     
     gettimeofday(&end, NULL);

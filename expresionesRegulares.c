@@ -29,19 +29,20 @@ void get_query(int argc, char *argv[]);
 void get_r_or_t(int argc, char *argv[]);
 void get_server_port(int argc, char *argv[]);
 void get_dns_servers();
+void printHelp();
 
 int main(int argc, char * argv[])
 {
 	server = malloc(sizeof(15));
 	if (argc == 1)
 	{
-		fprintf(stderr, "Falta la consulta\n");
+		fprintf(stderr, "No ha ingresado ninguna consulta\n");
 		exit(-1);
 	}
 	else
 	{
 		if (pantallaHelp(argc, argv))
-			printf("\nayuda\n");
+			printHelp();
 		else
 		{
 			
@@ -108,7 +109,6 @@ void get_query_type(int argc, char *argv[])
 	}
 	if (globalQueryType == -1)
 		globalQueryType = T_A;
-	printf("\nQuery type: %i\n",globalQueryType);
 }
 
 int pantallaHelp(int argc,char *argv[])
@@ -136,7 +136,6 @@ void get_r_or_t(int argc, char *argv[])
 	}
 	if (iterative == -1)
 		iterative = 0;
-	printf("\nr or t: %i\n",iterative);
 }
 
 void get_query(int argc, char *argv[])
@@ -148,7 +147,6 @@ void get_query(int argc, char *argv[])
 		if (match(argv[i], "^[^@^-].*$")) 
 			originalQueryName = argv[i];
 	}
-	printf("\nQuery: %s\n",originalQueryName);
 }
  void get_server_port(int argc, char *argv[])
  {
@@ -185,8 +183,6 @@ void get_query(int argc, char *argv[])
 	if (strcmp(portNumber, "") == 0)
 		 strcpy(portNumber , "53");
 	port = atoi(portNumber);
-	printf("\nServer: %s\n",server);
-	printf("\nPort: %i\n",port);
  }
  
  void get_dns_servers()
@@ -216,6 +212,25 @@ void get_query(int argc, char *argv[])
     while(server[i] != '\n')
 		i++;
 	server[i] = '\0';
+}
+
+void printHelp(){
+	char* mystr =
+											"\nUSO: dnsquery consulta [@servidor[:puerto]] [q-type] [q-opt] [-h]\n"
+											"	Where:	consulta	Nombre de dominio simbolico\n"
+											"		servidor	Servidor DNS al cual se suministrara la consulta.(Por defecto: DNS local)\n"
+											"		puerto		Puerto del servidor DNS al cual se suministrara la consulta.(Por defecto: 53)\n"
+											"		q-type	uno de los siguientes:\n"
+											"			-a		Retorna el IP asociado a la consulta.\n"
+											"			-mx		Retorna el IP asociado a la consulta.\n"
+											"			-loc	Retorna el IP asociado a la consulta.\n"
+											"			(Por defecto: -a)\n"
+											"		q-opt	uno de los siguientes:\n"
+											"			-r		Consulta recursiva\n"
+											"			-t		Consulta iterativa.\n"
+											"			(Por defecto: -r)\n"
+											"		-h	Pantalla de ayuda.\n";
+											printf(mystr);
 }
 
 
