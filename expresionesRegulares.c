@@ -12,25 +12,19 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <errno.h>
 #include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <regex.h>
 #include <arpa/nameser.h>
 
-extern  int errno;
-
-char dns_servers[10][100];
-int dns_server_count = 0;
+char dns_servers[1][100];
 
 int query_type;
 char * query;
 int r_or_t;
 char server[15];
 char port[10];
-
-
 
 int match(const char *string, char *pattern);
 int pantallaHelp(int argc, char *argv[]);
@@ -58,6 +52,10 @@ int main(int argc, char * argv[])
 			if (argc >= 2)
 			{
 				get_query(argc,argv);
+				if (strcmp(query, "") == 0){
+					fprintf(stderr,"No ha ingresado ninguna consulta\n");
+					exit(-1);
+				}
 				get_query_type(argc,argv);
 				get_server_port(argc,argv);			
 				get_r_or_t(argc,argv);
@@ -68,11 +66,6 @@ int main(int argc, char * argv[])
 
 	exit(0);
 }
-
-
-
-
-
 
 int match(const char *string, char *pattern)
 {
@@ -156,22 +149,21 @@ void get_query(int argc, char *argv[])
 	int i;
 	for (i=1;i<argc;i++){
 		
-		if (match(argv[i], "^[^@].*[.].*$")) 
+		if (match(argv[i], "^[^@^-].*$")) 
 			query = argv[i];
 	}
 	printf("\nQuery: %s\n",query);
 }
  void get_server_port(int argc, char *argv[])
  {
-	//port = "";
-	//server = "";
+	
 	int i;
 	for (i=1;i<argc;i++){
 		if (match(argv[i], "^@.+$")) {
 			int j;
 			int s = 0;			
 			
-			for (j=1; (argv[i][j] != '\0') && (argv[i][j] != ':') ;j++) { //j<strlen(argv[i])
+			for (j=1; (argv[i][j] != '\0') && (argv[i][j] != ':') ;j++) {
 				server[s]=argv[i][j];
 				s++;
 			}
@@ -203,7 +195,7 @@ void get_query(int argc, char *argv[])
     char line[200] , *p;
     if((fp = fopen("/etc/resolv.conf" , "r")) == NULL)
     {
-        printf("Failed opening /etc/resolv.conf file \n");
+        printf("Error al abrir el archivo /etc/resolv.conf \n");
     }
      
     while(fgets(line , 200 , fp))
@@ -216,7 +208,6 @@ void get_query(int argc, char *argv[])
         {
             p = strtok(line , " ");
             p = strtok(NULL , " ");
-             
             //p contiene la ip DNS
         }
     }
