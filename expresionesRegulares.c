@@ -17,26 +17,28 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <regex.h>
+#include <arpa/nameser.h>
 
 extern  int errno;
 
+char dns_servers[10][100];
+int dns_server_count = 0;
 
-char *permisos[] = {"...", "..x", ".w.", ".wx", "r..", "r.x", "rw.", "rwx"};
-
-char * query_type;
+int query_type;
 char * query;
-char * i_or_t;
+int r_or_t;
 char server[15];
 char port[10];
 
 
-void validar_argumentos(int argc, char *argv[]);
+
 int match(const char *string, char *pattern);
 int pantallaHelp(int argc, char *argv[]);
 void get_query_type(int argc, char *argv[]);
 void get_query(int argc, char *argv[]);
 void get_r_or_t(int argc, char *argv[]);
 void get_server_port(int argc, char *argv[]);
+void get_dns_servers();
 
 int main(int argc, char * argv[])
 {
@@ -56,8 +58,8 @@ int main(int argc, char * argv[])
 			if (argc >= 2)
 			{
 				get_query(argc,argv);
-				get_server_port(argc,argv);
 				get_query_type(argc,argv);
+				get_server_port(argc,argv);			
 				get_r_or_t(argc,argv);
 				
 			}
@@ -103,19 +105,21 @@ int match(const char *string, char *pattern)
 void get_query_type(int argc, char *argv[])
 {
 	int i;
-	query_type = "";
+	query_type = -1;
 	for (i=1;i<argc;i++){
 		
 		if (match(argv[i], "^-a$")) 
-			query_type = "T_A";
+			query_type = T_A;
 		else
-			if ((match(argv[i], "^-mx$")) && (strcmp(query_type, "") == 0))
-				query_type = "T_MX";
-				else if ((match(argv[i], "^-loc$")) && (strcmp(query_type, "") == 0))
-						query_type = "T_LOC";
+			if ((match(argv[i], "^-mx$")) && (query_type == -1))
+				query_type = T_MX;
+				else if ((match(argv[i], "^-loc$")) && (query_type == -1))
+						query_type = T_LOC;
 		
 	}
-	printf("\nQuery type: %s\n",query_type);
+	if (query_type == -1)
+		query_type = T_A;
+	printf("\nQuery type: %i\n",query_type);
 }
 
 int pantallaHelp(int argc,char *argv[])
@@ -131,17 +135,19 @@ int pantallaHelp(int argc,char *argv[])
 
 void get_r_or_t(int argc, char *argv[])
 {
-	i_or_t = "";
+	r_or_t = -1;
 	int i;
 	for (i=1;i<argc;i++){
 		
 		if (match(argv[i], "^-r$")) 
-			i_or_t = "r";
+			r_or_t = 0;
 		else
-			if (match(argv[i], "^-t$") && strcmp(i_or_t, "") == 0)
-				i_or_t = "t";
+			if (match(argv[i], "^-t$") && r_or_t == -1)
+				r_or_t = 1;
 	}
-	printf("\nI or T: %s\n",i_or_t);
+	if (r_or_t == -1)
+		r_or_t = 0;
+	printf("\nr or t: %i\n",r_or_t);
 }
 
 void get_query(int argc, char *argv[])
@@ -163,8 +169,7 @@ void get_query(int argc, char *argv[])
 	for (i=1;i<argc;i++){
 		if (match(argv[i], "^@.+$")) {
 			int j;
-			int s = 0;
-			
+			int s = 0;			
 			
 			for (j=1; (argv[i][j] != '\0') && (argv[i][j] != ':') ;j++) { //j<strlen(argv[i])
 				server[s]=argv[i][j];
@@ -186,7 +191,38 @@ void get_query(int argc, char *argv[])
 		}
 		
 	}
+	if (strcmp(server, "") == 0)
+		get_dns_servers();
 	printf("\nServer: %s\n",server);
 	printf("\nPort: %s\n",port);
  }
+ 
+ void get_dns_servers()
+{
+    FILE *fp;
+    char line[200] , *p;
+    if((fp = fopen("/etc/resolv.conf" , "r")) == NULL)
+    {
+        printf("Failed opening /etc/resolv.conf file \n");
+    }
+     
+    while(fgets(line , 200 , fp))
+    {
+        if(line[0] == '#')
+        {
+            continue;
+        }
+        if(strncmp(line , "nameserver" , 10) == 0)
+        {
+            p = strtok(line , " ");
+            p = strtok(NULL , " ");
+             
+            //p contiene la ip DNS
+        }
+    }
+     
+    strcpy(server , p);
+    
+}
+
 
