@@ -14,42 +14,24 @@
 
 unsigned char message[512];
 unsigned char* qname;
-char* originalQueryName;
-int globalQueryType;
-int iterative;
-char* server;
-int port;
 int status;
 unsigned char* response;
 char dnsServers[15][15];
 long micros;
 int sizeOfAnswer,printIP,root,serversCount,serversUsed;
 
-int main(int argc, char **argv){
-	
-	initializeVariables(argv);
-	if(iterative)
-		resolveIterative(originalQueryName,globalQueryType);
-	else{
-		resolveRecursive(originalQueryName,globalQueryType);
-	}
-	return 0;
-	
-}
-
-void initializeVariables(char **argv){
-	originalQueryName = argv[1];
-	globalQueryType = atoi(argv[2]);
-	iterative = atoi(argv[3]);
-	server = dnsServers[0];
-	sprintf(server,argv[4]);
-	
-	port = atoi(argv[5]);
+void initializeDnsQuery(){
 	
 	serversUsed = 0;
 	serversCount = 1;
 
 	printIP = 1;
+	
+	if(iterative)
+		resolveIterative(originalQueryName,globalQueryType);
+	else{
+		resolveRecursive(originalQueryName,globalQueryType);
+	}
 }
 
 
@@ -135,7 +117,7 @@ void sendAndReceiveFromSocket(int sizeOfMessage){
 	
 	int i;
 	
-		int sockfd;
+	int sockfd;
 	
 	sockfd = socket(AF_INET, SOCK_DGRAM, 0);
 	if(sockfd < 0) {
@@ -194,7 +176,7 @@ void parseRecursiveMethod(struct RESOURCE_RECORD answers[],struct RESOURCE_RECOR
 	printf("\n; <<>> DnsQuery <<>> %s \n",originalQueryName);
 	printf(";; global options: +cmd\n");
     printf(";; Got answer:\n");
-	printf(";; ->>HEADER<<- opcode: QUERY, status: %s, id: %u\n",ERRORS[status],getpid());
+	//printf(";; ->>HEADER<<- opcode: QUERY, status: %s, id: %u\n",ERRORS[status],getpid());
 	printf(";; flags: qr rd ra; QUERY: %i, ANSWER: %i, AUTHORITY: %i, ADDITIONAL: %i\n\n",questionsCount,answersCount,authoritativeCount,additionalRecordsCount);
 	printf(";; QUESTION SECTION:\n");
     printf(";%s			IN	A\n",originalQueryName);
@@ -433,7 +415,7 @@ void printLocalTime(){
 	printf(";; WHEN: %s", ctime(&now));
 }
 
-char* convert(uint8_t *a){
+char* convert(char *a){
   char* buffer2;
   int i;
 

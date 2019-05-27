@@ -13,18 +13,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/types.h>
 #include <sys/stat.h>
 #include <regex.h>
 #include <arpa/nameser.h>
+#include "definitions.h"
 
 char dns_servers[1][100];
 
-int query_type;
-char * query;
-int r_or_t;
-char server[15];
-char port[10];
+char portNumber[10];
 
 int match(const char *string, char *pattern);
 int pantallaHelp(int argc, char *argv[]);
@@ -36,7 +32,7 @@ void get_dns_servers();
 
 int main(int argc, char * argv[])
 {
-
+	server = malloc(sizeof(15));
 	if (argc == 1)
 	{
 		fprintf(stderr, "Falta la consulta\n");
@@ -52,14 +48,14 @@ int main(int argc, char * argv[])
 			if (argc >= 2)
 			{
 				get_query(argc,argv);
-				if (strcmp(query, "") == 0){
+				if (strcmp(originalQueryName, "") == 0){
 					fprintf(stderr,"No ha ingresado ninguna consulta\n");
 					exit(-1);
 				}
 				get_query_type(argc,argv);
 				get_server_port(argc,argv);			
 				get_r_or_t(argc,argv);
-				
+				initializeDnsQuery();
 			}
 		}
 	}
@@ -98,21 +94,21 @@ int match(const char *string, char *pattern)
 void get_query_type(int argc, char *argv[])
 {
 	int i;
-	query_type = -1;
+	globalQueryType = -1;
 	for (i=1;i<argc;i++){
 		
 		if (match(argv[i], "^-a$")) 
-			query_type = T_A;
+			globalQueryType = T_A;
 		else
-			if ((match(argv[i], "^-mx$")) && (query_type == -1))
-				query_type = T_MX;
-				else if ((match(argv[i], "^-loc$")) && (query_type == -1))
-						query_type = T_LOC;
+			if ((match(argv[i], "^-mx$")) && (globalQueryType == -1))
+				globalQueryType = T_MX;
+				else if ((match(argv[i], "^-loc$")) && (globalQueryType == -1))
+						globalQueryType = T_LOC;
 		
 	}
-	if (query_type == -1)
-		query_type = T_A;
-	printf("\nQuery type: %i\n",query_type);
+	if (globalQueryType == -1)
+		globalQueryType = T_A;
+	printf("\nQuery type: %i\n",globalQueryType);
 }
 
 int pantallaHelp(int argc,char *argv[])
@@ -128,31 +124,31 @@ int pantallaHelp(int argc,char *argv[])
 
 void get_r_or_t(int argc, char *argv[])
 {
-	r_or_t = -1;
+	iterative = -1;
 	int i;
 	for (i=1;i<argc;i++){
 		
 		if (match(argv[i], "^-r$")) 
-			r_or_t = 0;
+			iterative = 0;
 		else
-			if (match(argv[i], "^-t$") && r_or_t == -1)
-				r_or_t = 1;
+			if (match(argv[i], "^-t$") && iterative == -1)
+				iterative = 1;
 	}
-	if (r_or_t == -1)
-		r_or_t = 0;
-	printf("\nr or t: %i\n",r_or_t);
+	if (iterative == -1)
+		iterative = 0;
+	printf("\nr or t: %i\n",iterative);
 }
 
 void get_query(int argc, char *argv[])
 {
-	query = "";
+	originalQueryName = "";
 	int i;
 	for (i=1;i<argc;i++){
 		
 		if (match(argv[i], "^[^@^-].*$")) 
-			query = argv[i];
+			originalQueryName = argv[i];
 	}
-	printf("\nQuery: %s\n",query);
+	printf("\nQuery: %s\n",originalQueryName);
 }
  void get_server_port(int argc, char *argv[])
  {
@@ -167,7 +163,7 @@ void get_query(int argc, char *argv[])
 				server[s]=argv[i][j];
 				s++;
 			}
-	
+			server[s] = '\0';
 			s = 0;
 			
 			if (argv[i][j] == ':'){
@@ -175,9 +171,10 @@ void get_query(int argc, char *argv[])
 				
 				int x;
 				for (x = j;(argv[i][x] != '\0'); x++){
-					port[s]=argv[i][x];
+					portNumber[s]=argv[i][x];
 					s++;
 				}
+				portNumber[s] = '\0';
 			}
 				
 		}
@@ -185,8 +182,11 @@ void get_query(int argc, char *argv[])
 	}
 	if (strcmp(server, "") == 0)
 		get_dns_servers();
+	if (strcmp(portNumber, "") == 0)
+		 strcpy(portNumber , "53");
+	port = atoi(portNumber);
 	printf("\nServer: %s\n",server);
-	printf("\nPort: %s\n",port);
+	printf("\nPort: %i\n",port);
  }
  
  void get_dns_servers()
@@ -211,9 +211,11 @@ void get_query(int argc, char *argv[])
             //p contiene la ip DNS
         }
     }
-     
     strcpy(server , p);
-    
+    int i = 0;
+    while(server[i] != '\n')
+		i++;
+	server[i] = '\0';
 }
 
 

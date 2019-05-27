@@ -1,7 +1,16 @@
-#define PORT 53 
+#ifndef HEADERS
+#define HEADERS
 
-const char* const ERRORS[] = { "NOERROR", "FORMERR","SERVFAIL","NXDOMAIN","NOTIMP","REFUSED","YXDOMAIN","YXRRSET","NXRRSET","NOTAUTH","NOTZONE" };
-const char* const TYPES[] = { "A", "MX","LOC" };
+#define PORT 53 
+#include <sys/types.h>
+//const char* const ERRORS[] = { "NOERROR", "FORMERR","SERVFAIL","NXDOMAIN","NOTIMP","REFUSED","YXDOMAIN","YXRRSET","NXRRSET","NOTAUTH","NOTZONE" };
+//const char* const TYPES[] = { "A", "MX","LOC" };
+
+char* originalQueryName;
+int globalQueryType;
+int iterative;
+char* server;
+int port;
 
 struct DNS_HEADER
 {
@@ -54,7 +63,7 @@ struct SOA
 	unsigned int minimum;
 };
 
-void initializeVariables(char **argv);
+extern void initializeDnsQuery();
 int resolveRecursive(char* queryName, unsigned short queryType);
 void resolveIterative(char* queryName, unsigned short queryType);
 int prepareDnsHeader(char* queryName, unsigned short queryType);
@@ -74,6 +83,8 @@ void printMXFormat(struct RESOURCE_RECORD * answers);
 void readNSFormat(struct RESOURCE_RECORD * answers);
 void readCNAMEFormat(struct RESOURCE_RECORD * answers);
 void printLocalTime();
-char* convert(uint8_t *a);
+char* convert(char *a);
 void readLOCFormat(const unsigned char *binary,struct RESOURCE_RECORD * answers);
 const char *precsize_ntoa(u_int8_t prec);
+
+#endif
