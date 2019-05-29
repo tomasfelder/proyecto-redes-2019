@@ -13,6 +13,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 #include <sys/stat.h>
 #include <regex.h>
 #include <arpa/nameser.h>
@@ -124,18 +127,18 @@ int pantallaHelp(int argc,char *argv[])
 
 void get_r_or_t(int argc, char *argv[])
 {
-	iterative = -1;
+	recursive = -1;
 	int i;
 	for (i=1;i<argc;i++){
 		
 		if (match(argv[i], "^-r$")) 
-			iterative = 0;
+			recursive = 1;
 		else
-			if (match(argv[i], "^-t$") && iterative == -1)
-				iterative = 1;
+			if (match(argv[i], "^-t$") && recursive == -1)
+				recursive = 0;
 	}
-	if (iterative == -1)
-		iterative = 0;
+	if (recursive == -1)
+		recursive = 1;
 }
 
 void get_query(int argc, char *argv[])
@@ -144,7 +147,7 @@ void get_query(int argc, char *argv[])
 	int i;
 	for (i=1;i<argc;i++){
 		
-		if (match(argv[i], "^[^@^-].*$")) 
+		if (match(argv[i], "^[^@:-].*$")) 
 			originalQueryName = argv[i];
 	}
 }
@@ -162,6 +165,11 @@ void get_query(int argc, char *argv[])
 				s++;
 			}
 			server[s] = '\0';
+			struct in_addr addr;
+		 
+			if(!inet_aton(server, &addr)) {
+				 getIPFromNameServer(server);
+			}
 			s = 0;
 			
 			if (argv[i][j] == ':'){

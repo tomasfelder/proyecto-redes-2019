@@ -2,15 +2,33 @@
 #define HEADERS
 
 #define PORT 53 
-#include <sys/types.h>
-//const char* const ERRORS[] = { "NOERROR", "FORMERR","SERVFAIL","NXDOMAIN","NOTIMP","REFUSED","YXDOMAIN","YXRRSET","NXRRSET","NOTAUTH","NOTZONE" };
-//const char* const TYPES[] = { "A", "MX","LOC" };
+#include <stdio.h> 
+#include <stdlib.h> 
+#include <unistd.h> 
+#include <string.h> 
+#include <sys/types.h> 
+#include <sys/socket.h> 
+#include <arpa/inet.h> 
+#include <netinet/in.h>
+#include <sys/time.h>
+#include <time.h>
+#include <stdint.h>
+#include <arpa/nameser.h>
+#include <netdb.h>
+
+extern const char* ERRORS[];
 
 char* originalQueryName;
 int globalQueryType;
-int iterative;
+int recursive;
 char* server;
 int port;
+unsigned char message[512];
+unsigned char* qname;
+int status;
+unsigned char* response;
+long micros;
+int sizeOfAnswer,printIP,root;
 
 struct DNS_HEADER
 {
@@ -64,14 +82,17 @@ struct SOA
 };
 
 extern void initializeDnsQuery();
-int resolveRecursive(char* queryName, unsigned short queryType);
+int resolveQuery(char* queryName, unsigned short queryType);
 void resolveIterative(char* queryName, unsigned short queryType);
 int prepareDnsHeader(char* queryName, unsigned short queryType);
 void changeDomainFormat(char * regularDomain, unsigned char * dnsDomain);
 void sendAndReceiveFromSocket(int sizeOfMessage);
 int parseResponse(int sizeOfHeader);
-void parseRecursiveMethod(struct RESOURCE_RECORD answers[],struct RESOURCE_RECORD additionals[],struct RESOURCE_RECORD authorities[],int answersCount, int additionalRecordsCount, int authoritativeCount, int questionsCount);
+int parseRootServersAnswers(struct RESOURCE_RECORD answers[],struct RESOURCE_RECORD additionals[],struct RESOURCE_RECORD authorities[],int answersCount, int additionalRecordsCount, int authoritativeCount, int questionsCount);
+int parseRecursiveMethod(struct RESOURCE_RECORD answers[],struct RESOURCE_RECORD additionals[],struct RESOURCE_RECORD authorities[],int answersCount, int additionalRecordsCount, int authoritativeCount, int questionsCount);
 int parseIterativeMethod(struct RESOURCE_RECORD answers[],struct RESOURCE_RECORD additionals[],struct RESOURCE_RECORD authorities[],int answersCount, int additionalRecordsCount, int authoritativeCount, int questionsCount);
+void getIPFromNameServer(char * hostname);
+int updateServer(struct RESOURCE_RECORD resourceRecords[],int resourceRecordsCount);
 void readResourceRecords(struct RESOURCE_RECORD resourceRecords[],int resourceRecordsCount);
 void readAnswerName(unsigned char* response,unsigned char* message, int* nextPart,unsigned char * domainName);
 void readIPv4Address(int resourceDataLength,unsigned char* rdata);
@@ -83,7 +104,7 @@ void printMXFormat(struct RESOURCE_RECORD * answers);
 void readNSFormat(struct RESOURCE_RECORD * answers);
 void readCNAMEFormat(struct RESOURCE_RECORD * answers);
 void printLocalTime();
-char* convert(char *a);
+char* convert(uint8_t *a);
 void readLOCFormat(const unsigned char *binary,struct RESOURCE_RECORD * answers);
 const char *precsize_ntoa(u_int8_t prec);
 
