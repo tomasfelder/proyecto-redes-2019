@@ -1,3 +1,10 @@
+#include <stdio.h> 
+#include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
+#include <arpa/inet.h> 
+#include <time.h>
+#include <arpa/nameser.h>
 #include "definitions.h"
 
 const char* ERRORS[] = { "NOERROR", "FORMERR","SERVFAIL","NXDOMAIN","NOTIMP","REFUSED","YXDOMAIN","YXRRSET","NXRRSET","NOTAUTH","NOTZONE" };
@@ -19,9 +26,9 @@ int parseResponse(int sizeOfHeader){
 	if(recursive)
 		return parseRecursiveMethod(answers,additionals,authorities,answersCount,additionalRecordsCount,authoritativeCount,questionsCount);
 	if(!recursive && root)
-		return parseRootServersAnswers(answers,additionals,authorities,answersCount,additionalRecordsCount,authoritativeCount,questionsCount);
+		return parseRootServersAnswers(answers,additionals,authorities,answersCount,additionalRecordsCount,authoritativeCount);
 	if(!recursive && !root)
-		return parseIterativeMethod(answers,additionals,authorities,answersCount,additionalRecordsCount,authoritativeCount,questionsCount);
+		return parseIterativeMethod(answers,additionals,authorities,answersCount,additionalRecordsCount,authoritativeCount);
 	return 0;
 	
 }
@@ -68,7 +75,7 @@ int parseRecursiveMethod(struct RESOURCE_RECORD answers[],struct RESOURCE_RECORD
 	return 0;
 }
 
-int parseIterativeMethod(struct RESOURCE_RECORD answers[],struct RESOURCE_RECORD additionals[],struct RESOURCE_RECORD authorities[],int answersCount, int additionalRecordsCount, int authoritativeCount, int questionsCount){
+int parseIterativeMethod(struct RESOURCE_RECORD answers[],struct RESOURCE_RECORD additionals[],struct RESOURCE_RECORD authorities[],int answersCount, int additionalRecordsCount, int authoritativeCount){
 	
     readResourceRecords(answers,answersCount);
 	readResourceRecords(authorities,authoritativeCount);
@@ -95,7 +102,7 @@ int parseIterativeMethod(struct RESOURCE_RECORD answers[],struct RESOURCE_RECORD
 	return 0;
 }
 
-int parseRootServersAnswers(struct RESOURCE_RECORD answers[],struct RESOURCE_RECORD additionals[],struct RESOURCE_RECORD authorities[],int answersCount, int additionalRecordsCount, int authoritativeCount, int questionsCount){
+int parseRootServersAnswers(struct RESOURCE_RECORD answers[],struct RESOURCE_RECORD additionals[],struct RESOURCE_RECORD authorities[],int answersCount, int additionalRecordsCount, int authoritativeCount){
     readResourceRecords(answers,answersCount);
 	readResourceRecords(authorities,authoritativeCount);
 	
@@ -156,11 +163,11 @@ void readResourceRecords(struct RESOURCE_RECORD resourceRecords[],int resourceRe
 				break;
 			case T_NS:
 				resourceRecords[i].rdata = (unsigned char*)malloc(256);
-				readNSFormat(&resourceRecords[i]);
+				readAndPrintNSFormat(&resourceRecords[i]);
 				break;
 			case T_CNAME:
 				resourceRecords[i].rdata = (unsigned char*)malloc(256);
-				readCNAMEFormat(&resourceRecords[i]);
+				readAndPrintCNAMEFormat(&resourceRecords[i]);
 				break;
 			case T_SOA:
 				resourceRecords[i].rdata = (unsigned char*)malloc(256);
@@ -214,7 +221,7 @@ void readAnswerName(unsigned char* response,unsigned char* message, int* nextPar
             *nextPart = *nextPart + 1;
         }
     }
-    domainName[count] = '\0'; //string complete
+    domainName[count] = '\0';
     if(jumped==1)
     {
         *nextPart = *nextPart + 1;
@@ -230,4 +237,14 @@ void readAnswerName(unsigned char* response,unsigned char* message, int* nextPar
         }
         domainName[i] ='.';
     }
+}
+
+void getIPFromNameServer(char * hostname){
+	struct hostent* host = gethostbyname(hostname);
+	if(host == NULL){
+		printf("Not a valid server name\n");
+		exit(EXIT_FAILURE);
+	}
+	struct in_addr *addr = (struct in_addr *)host->h_addr;
+	sprintf(server,inet_ntoa(*addr));
 }

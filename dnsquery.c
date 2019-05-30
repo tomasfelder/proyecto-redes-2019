@@ -1,4 +1,12 @@
-
+#include <stdio.h> 
+#include <stdlib.h> 
+#include <unistd.h> 
+#include <string.h> 
+#include <sys/socket.h> 
+#include <arpa/inet.h> 
+#include <netinet/in.h>
+#include <sys/time.h>
+#include <arpa/nameser.h>
 #include "definitions.h"
 
 void initializeDnsQuery(){
@@ -13,7 +21,6 @@ void initializeDnsQuery(){
 		resolveIterative(originalQueryName,globalQueryType);
 	}
 }
-
 
 void resolveIterative(char* queryName, unsigned short queryType){
 	int answer = 0;
@@ -132,14 +139,4 @@ void sendAndReceiveFromSocket(int sizeOfMessage){
     long seconds = (end.tv_sec - start.tv_sec);
     micros = ((seconds * 1000000) + end.tv_usec) - (start.tv_usec);
     
-}
-
-void getIPFromNameServer(char * hostname){
-	struct hostent* host = gethostbyname(hostname);
-	if(host == NULL){
-		printf("Not a valid server name\n");
-		exit(EXIT_FAILURE);
-	}
-	struct in_addr *addr = (struct in_addr *)host->h_addr;
-	sprintf(server,inet_ntoa(*addr));
 }

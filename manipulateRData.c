@@ -1,3 +1,7 @@
+#include <stdio.h> 
+#include <stdlib.h> 
+#include <time.h>
+#include <arpa/nameser.h>
 #include "definitions.h"
 
 static unsigned int poweroften[10] = {1, 10, 100, 1000, 10000, 100000, 1000000,10000000,100000000,1000000000};
@@ -64,7 +68,7 @@ void printMXFormat(struct RESOURCE_RECORD * answers){
 	printf("%s\n",answers->rdata+sizeof(short));
 }
 
-void readNSFormat(struct RESOURCE_RECORD * answers){
+void readAndPrintNSFormat(struct RESOURCE_RECORD * answers){
 	int nextPart = 0;
 	readAnswerName(response,message,&nextPart,answers->rdata);
 	response = response + nextPart;
@@ -72,7 +76,7 @@ void readNSFormat(struct RESOURCE_RECORD * answers){
 	printf("%s\n",answers->rdata);
 }
 
-void readCNAMEFormat(struct RESOURCE_RECORD * answers){
+void readAndPrintCNAMEFormat(struct RESOURCE_RECORD * answers){
 	int nextPart = 0;
 	readAnswerName(response,message,&nextPart,answers->rdata);
 	response = response + nextPart;

@@ -1,35 +1,40 @@
-#ifndef HEADERS
-#define HEADERS
-
-#define PORT 53 
-#include <stdio.h> 
-#include <stdlib.h> 
-#include <unistd.h> 
-#include <string.h> 
-#include <sys/types.h> 
-#include <sys/socket.h> 
-#include <arpa/inet.h> 
-#include <netinet/in.h>
-#include <sys/time.h>
-#include <time.h>
-#include <stdint.h>
-#include <arpa/nameser.h>
 #include <netdb.h>
 
-extern const char* ERRORS[];
+#define PORT 53 /*%< Puerto se servidor DNS por defecto */
 
-char* originalQueryName;
-int globalQueryType;
-int recursive;
-char* server;
-int port;
-unsigned char message[512];
-unsigned char* qname;
-int status;
-unsigned char* response;
-long micros;
-int sizeOfAnswer,printIP,root;
+extern const char* ERRORS[]; /*%< Nombre de errores que devuelve mensaje DNS */
 
+char* originalQueryName; /*%< Nombre de consulta original */
+
+int globalQueryType; /*% Tipo de consulta original */
+
+int recursive; /*%< Flag que indica consulta recursiva en 1 y no recursiva en 0 */
+
+char* server; /*%< Servidor al que se le esta haciendo la consulta en direccion IPv4 */
+
+int port; /*%< Puerto de servidor DNS */
+
+unsigned char message[512]; /*%< Buffer del mensaje DNS */
+
+unsigned char* qname; /*%< Nombre del dominio de consulta DNS */
+
+int status; /*%< Status de respueta del mensaje DNS */
+
+unsigned char* response; /*%< Puntero que reocrre el buffer del mensaje de respuesta DNS */
+
+long micros; /*%< Microsegundos que tarda el mensaje DNS */
+
+int sizeOfAnswer; /*%< Tamano de la respuesta de mensaje DNS */
+
+int printIP; /*%< Flag para saber si imprimir los IP de una consulta */
+
+int root; /*%< Flag para saber si se esta haciendo una consulta a los servidores raiz en metodo iterativo */
+
+/*
+ * ---------------------------------------------------------------------------------------------------------
+ * ---------------------------------- Estructuras para mensajes DNS. ---------------------------------------
+ * ---------------------------------------------------------------------------------------------------------
+ */
 struct DNS_HEADER
 {
     unsigned short id; /*%< query identification number */
@@ -80,6 +85,12 @@ struct SOA
 	int expire;
 	unsigned int minimum;
 };
+
+/*
+ * ---------------------------------------------------------------------------------------------------------
+ * ------------------------------ Funciones y procedimientos -----------------------------------------------
+ * ---------------------------------------------------------------------------------------------------------
+ */
 
 /*
  * Procedimiento:  initializeDnsQuery 
@@ -226,7 +237,7 @@ int parseResponse(int sizeOfHeader);
  *  returns: Si se esta ejecutando una consulta iterativa y encontro la respuesta final
  * 			 devuelve 1. En cualquier otro caso devuelve 0. 
  */
-int parseRootServersAnswers(struct RESOURCE_RECORD answers[],struct RESOURCE_RECORD additionals[],struct RESOURCE_RECORD authorities[],int answersCount, int additionalRecordsCount, int authoritativeCount, int questionsCount);
+int parseRootServersAnswers(struct RESOURCE_RECORD answers[],struct RESOURCE_RECORD additionals[],struct RESOURCE_RECORD authorities[],int answersCount, int additionalRecordsCount, int authoritativeCount);
 
 /*
  * Funcion:  parseRecursiveMethod 
@@ -525,5 +536,3 @@ void readLOCFormat(const unsigned char *binary,struct RESOURCE_RECORD * resource
  * returns:
  */
 const char* precsize_ntoa(u_int8_t prec);
-
-#endif
