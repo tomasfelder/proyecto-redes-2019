@@ -177,7 +177,6 @@ void changeDomainFormat(char * regularDomain, unsigned char * dnsDomain);
  * Datos de entrada 
  * --------------------
  * sizeOfMessage: Tamaño del header DNS
- * 
  */
 void sendAndReceiveFromSocket(int sizeOfHeader);
 
@@ -282,22 +281,249 @@ int parseRecursiveMethod(struct RESOURCE_RECORD answers[],struct RESOURCE_RECORD
  */
 int parseIterativeMethod(struct RESOURCE_RECORD answers[],struct RESOURCE_RECORD additionals[],struct RESOURCE_RECORD authorities[],int answersCount, int additionalRecordsCount, int authoritativeCount);
 
-
+/*
+ * Procedimiento:  getIPFromNameServer 
+ * --------------------
+ * Procedimiento que se encarga de obtener el IP de un dominio usando la funcion
+ * gethostbyname para luego actualizar el server a consultar con ese IP obtenido.
+ *
+ * Datos de entrada 
+ * --------------------
+ * hostname: Nombre del servidor a consultar.
+ */
 void getIPFromNameServer(char * hostname);
+
+/*
+ * Funcion:  updateServer 
+ * --------------------
+ * Funcion que se encargara de recorrer los records pasados por parametro para
+ * obtener el IPv4 del proximo server a consultar en la consulta iterativa. Realiza
+ * un ciclo que termina de manera brusca al encontrar la primera direccion IPv4.
+ *  
+ * Datos de entrada 
+ * --------------------
+ * resourceRecords: Arreglo de RESORUCE_RECORDS donde se encuentran las direccions IP.
+ * resourceRecordsCount: Cantidad de RESORUCE_RECORDS.
+ *
+ * Datos de salida 
+ * --------------------
+ *  returns: Devuelve 0 solo para cortar la ejecucion del procedimiento.
+ */
 int updateServer(struct RESOURCE_RECORD resourceRecords[],int resourceRecordsCount);
+
+/*
+ * Procedimiento:  readResourceRecords 
+ * --------------------
+ * Procedimiento que recorre el buffer de respuesta para ir actualizando los RESOURCE_RECORDS
+ * con la informacion obtenida. Recorre con un ciclo for la cantidad que hay. Obtiene del buffer
+ * de respuesta el nombre, el tipo de respuesta para saber que se encuentra en el RDATA y el 
+ * RDATA correspondiente. Para cada tipo de respuesta llamara al procedimiento que se encargue de 
+ * parsear de la manera adecuada. Si obtiene un tipo no reconocido por el programa, lo saltea.
+ *  
+ * Datos de entrada 
+ * --------------------
+ * resourceRecords: Arreglo de RESORUCE_RECORDS.
+ * resourceRecordsCount: Cantidad de RESORUCE_RECORDS.
+ *
+ * Datos de salida 
+ * --------------------
+ *  resourceRecords: Se encontraran con la informacion actualizada.
+ */
 void readResourceRecords(struct RESOURCE_RECORD resourceRecords[],int resourceRecordsCount);
+
+/*
+ * Procedimiento:  readAnswerName 
+ * --------------------
+ * Procedimiento que recorre el buffer de respuesta para obtener un nombre de dominio. El
+ * formato obtenido es el mismo que el especificado en changeDomainFormat con las etiquetas
+ * y el numero de etiquetas. Este procedimiento obtendra los distintos bytes y guardandolos,
+ * pero diferenciando el caso donde se encuentre una direccion de offset. Esto se debe a que 
+ * el mensaje obtenido puede tener nombres repetidos que llegaran una sola vez en una direccion
+ * y se podran recorrer con el offset propiamente dicho. Esto esta especificado en el [RFC 1035].
+ * El puntero de 16 bits se especifica con los primeros dos bits en 1, por eso se pregunta por 192,
+ * 1100 0000 en binario. Para obtener la direccion donde se encuentra el nombre a seguir escribiendo
+ * se calcula el offset indicando que el puntero actual es el inicio del buffer + el offset calculado.
+ * El procedimiento termina cuando se leyo un 0, indicando fin de etiqueta y luego se convierte en
+ * el formato de direcciones con . entendido por el usuario.
+ *  
+ * Datos de entrada 
+ * --------------------
+ * response: Puntero actual de respuesta.
+ * message: Puntero al inicio del buffer de respuesta.
+ * nextPart: Puntero a entero para actualizar buffer de respuesta.
+ * domainName: Puntero a char donde se guardara el nombre de dominio.
+ *
+ * Datos de salida 
+ * --------------------
+ * nextPart: Puntero a entero con la cantidad de bytes movidos para actualizar buffer de respuesta.
+ * domainName: Puntero a char donde se encuenrta el nombre de dominio.
+ */
 void readAnswerName(unsigned char* response,unsigned char* message, int* nextPart,unsigned char * domainName);
+
+/*
+ * Procedimiento:  readIPv4Address 
+ * --------------------
+ * Procedimiento que recorre el buffer de respuesta para obtener una direccion IPv4 del registro
+ * RDATA segun especificacion [RFC 1035].
+ *  
+ * Datos de entrada 
+ * --------------------
+ * resourceDataLength: Largo del registro.
+ * rdata: Puntero a char.
+ *
+ * Datos de salida 
+ * --------------------
+ * rdata: Puntero a char con la informacion guardada.
+ */
 void readIPv4Address(int resourceDataLength,unsigned char* rdata);
-void printIPv4Address(struct RESOURCE_RECORD * answers);
+
+/*
+ * Procedimiento:  printIPv4Address 
+ * --------------------
+ * Procedimiento que recorre el RESOURCE_RECORD para imprimir una direccion IPv4 del registro
+ * RDATA segun especificacion [RFC 1035].
+ *  
+ * Datos de entrada 
+ * --------------------
+ * resoruce: Puntero a registro con la informacion a imprimir.
+ */
+void printIPv4Address(struct RESOURCE_RECORD * resoruce);
+
+/*
+ * Procedimiento:  readIPv6Address 
+ * --------------------
+ * Procedimiento que recorre el buffer de respuesta para obtener una direccion IPv6 del registro
+ * RDATA. (ACTUALMENTE SOLO ACTUALIZA EL BUFFER, NO IMPLEMENTADA LA LECTURA IPv6)
+ *  
+ * Datos de entrada 
+ * --------------------
+ * resourceDataLength: Largo del registro.
+ * rdata: Puntero a char.
+ *
+ */
 void readIPv6Address(int resourceDataLength,unsigned char* rdata);
+
+/*
+ * Procedimiento:  readSOAFormat 
+ * --------------------
+ * Procedimiento que recorre el buffer de respuesta para obtener un SOA del registro
+ * RDATA segun especificacion [RFC 1035]. Solo imprime la informacion sin guardar en variable.
+ *  
+ * Datos de entrada 
+ * --------------------
+ * resourceDataLength: Largo del registro.
+ * rdata: Puntero a char.
+ *
+ */
 void readSOAFormat(int resourceDataLength,unsigned char* rdata);
+
+/*
+ * Procedimiento:  readMXFormat 
+ * --------------------
+ * Procedimiento que recorre el buffer de respuesta para obtener una respuesta MX del registro
+ * RDATA segun especificacion [RFC 1035].
+ *  
+ * Datos de entrada 
+ * --------------------
+ * rdata: Puntero a char.
+ *
+ * Datos de salida 
+ * --------------------
+ * rdata: Puntero a char con la informacion guardada.
+ */
 void readMXFormat(unsigned char* rdata);
-void printMXFormat(struct RESOURCE_RECORD * answers);
-void readNSFormat(struct RESOURCE_RECORD * answers);
-void readCNAMEFormat(struct RESOURCE_RECORD * answers);
+
+/*
+ * Procedimiento:  printMXFormat 
+ * --------------------
+ * Procedimiento que recorre el RESOURCE_RECORD para imprimir una respuesta MX del registro
+ * RDATA segun especificacion [RFC 1035].
+ *  
+ * Datos de entrada 
+ * --------------------
+ * resoruce: Puntero a registro con la informacion a imprimir.
+ */
+void printMXFormat(struct RESOURCE_RECORD * resoruce);
+
+/*
+ * Procedimiento:  readAndPrintNSFormat 
+ * --------------------
+ * Procedimiento que recorre el buffer de respuesta para obtener una respuesta NS del registro
+ * RDATA e imprimirla por pantalla segun especificacion [RFC 1035].
+ *  
+ * Datos de entrada 
+ * --------------------
+ * resoruce: Puntero a registro RESOURCE_RECORD.
+ *
+ * Datos de salida 
+ * --------------------
+ * resoruce: Puntero a registro RESOURCE_RECORD.
+ */
+void readAndPrintNSFormat(struct RESOURCE_RECORD * resoruce);
+
+/*
+ * Procedimiento:  readAndPrintCNAMEFormat 
+ * --------------------
+ * Procedimiento que recorre el buffer de respuesta para obtener una respuesta CNAME del registro
+ * RDATA e imprimirla por pantalla segun especificacion [RFC 1035].
+ *  
+ * Datos de entrada 
+ * --------------------
+ * resoruce: Puntero a registro RESOURCE_RECORD.
+ *
+ * Datos de salida 
+ * --------------------
+ * resoruce: Puntero a registro RESOURCE_RECORD.
+ */
+void readAndPrintCNAMEFormat(struct RESOURCE_RECORD * resoruce);
+
+/*
+ * Procedimiento:  printLocalTime 
+ * --------------------
+ * Procedimiento que imprime la hora local del equipo.
+ */
 void printLocalTime();
+
+/*
+ * Funcion:  convert 
+ * --------------------
+ * Funcion (completar)
+ *
+ * Datos de entrada 
+ * --------------------
+ * a:
+ *
+ * Datos de salida 
+ * --------------------
+ * returns:
+ */
 char* convert(uint8_t *a);
-void readLOCFormat(const unsigned char *binary,struct RESOURCE_RECORD * answers);
-const char *precsize_ntoa(u_int8_t prec);
+
+/*
+ * Procedimiento:  readLOCFormat 
+ * --------------------
+ * Procedimiento (completar)
+ *
+ * Datos de entrada 
+ * --------------------
+ * binary:
+ * resource:
+ */
+void readLOCFormat(const unsigned char *binary,struct RESOURCE_RECORD * resource);
+
+/*
+ * Funcion:  precsize_ntoa 
+ * --------------------
+ * Funcion (completar)
+ *
+ * Datos de entrada 
+ * --------------------
+ * prec:
+ *
+ * Datos de salida 
+ * --------------------
+ * returns:
+ */
+const char* precsize_ntoa(u_int8_t prec);
 
 #endif
