@@ -1,13 +1,13 @@
 /* 
-	Archivo       : ejemplo7.c
-	Descripción   : Programa que permite cambiar sólo los permisos de usuario de un archivo determinado en Linux.
+	Archivo       : main.c
+	Descripción   : Puerta principal del programa dnsquery que realiza consulta a servidores DNS emulando al comando dig
 
-	Actualización : 20101012 Leonardo de - Matteis
-	Autor         : ?
-	Materia       : Sistemas Operativos
+	Actualización : 30.05.2019 | Felder, Tomas Ariel - Suburu, Ignacio
+	Autor         : Felder, Tomas Ariel - Suburu, Ignacio
+	Materia       : Redes de Computadoras - Ingenieria en Sistemas de Informacion - Universidad Nacional del Sur
 
-	Modo de uso	  : cambiar_permisos_usuario <archivo> <permisos>
-	Compilación   : gcc -o cambiar_permisos_usuario ejemplo7.c
+	Modo de uso	  : ./ dnsquery consulta [@servidor[:puerto]] [q-type] [q-opt] [-h]
+	Compilación   : gcc -o dnsquery preapreDnsQuery.c main.c manipulateRData.c parsingMethods.c 
 */
 
 #include <stdio.h>

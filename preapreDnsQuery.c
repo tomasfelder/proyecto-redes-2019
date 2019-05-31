@@ -1,3 +1,13 @@
+/* 
+	Archivo       : dnsquery.c
+	Descripción   : Implementacion de metodos para realizar consulta de dominios (Emulacion comando dig)
+
+	Actualización : 30.05.2019 | Felder, Tomas Ariel - Suburu, Ignacio
+	Autor         : Felder, Tomas Ariel - Suburu, Ignacio
+	Materia       : Redes de Computadoras - Ingenieria en Sistemas de Informacion - Universidad Nacional del Sur
+	
+*/
+
 #include <stdio.h> 
 #include <stdlib.h> 
 #include <unistd.h> 

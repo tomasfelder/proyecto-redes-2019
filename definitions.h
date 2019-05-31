@@ -88,7 +88,7 @@ struct SOA
 
 /*
  * ---------------------------------------------------------------------------------------------------------
- * ------------------------------ Funciones y procedimientos -----------------------------------------------
+ * ------------------------------ Funciones y Procedimientos -----------------------------------------------
  * ---------------------------------------------------------------------------------------------------------
  */
 
@@ -494,21 +494,6 @@ void readAndPrintCNAMEFormat(struct RESOURCE_RECORD * resoruce);
  * Procedimiento que imprime la hora local del equipo.
  */
 void printLocalTime();
-
-/*
- * Funcion:  convert 
- * --------------------
- * Funcion que convierte un entero no signado de 8 bits a caracter
- *
- * Datos de entrada 
- * --------------------
- * a: puntero a un entero no signado de 8 bits
- *
- * Datos de salida 
- * --------------------
- * returns: puntero a char
- */
-char* convert(uint8_t *a);
 
 /*
  * Procedimiento:  readLOCFormat 
