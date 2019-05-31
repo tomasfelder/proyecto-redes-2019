@@ -498,41 +498,47 @@ void printLocalTime();
 /*
  * Funcion:  convert 
  * --------------------
- * Funcion (completar)
+ * Funcion que convierte un entero no signado de 8 bits a caracter
  *
  * Datos de entrada 
  * --------------------
- * a:
+ * a: puntero a un entero no signado de 8 bits
  *
  * Datos de salida 
  * --------------------
- * returns:
+ * returns: puntero a char
  */
 char* convert(uint8_t *a);
 
 /*
  * Procedimiento:  readLOCFormat 
  * --------------------
- * Procedimiento (completar)
+ * Procedimiento que recorre el buffer de respuesta para obtener la informacion de locacion del registro RDATA segun especificacion [RFC 1876].
+ * Luego la parsea e imprime por la salida estandar. 
+ * Algoritmo basado en la funcion loc_ntoa implementada en el RFC 1876.
  *
  * Datos de entrada 
  * --------------------
- * binary:
- * resource:
+ * binary: Puntero a un char no signado. Apunta al primer elemento del registro RDATA.
+ * resource: Puntero a registro RESOURCE_RECORD.
  */
 void readLOCFormat(const unsigned char *binary,struct RESOURCE_RECORD * resource);
 
 /*
  * Funcion:  precsize_ntoa 
  * --------------------
- * Funcion (completar)
- *
+ * Funcion que convierte los primeros 4 bits y los ultimos 4 bits de prec en dos numeros del 0 al 9. Los ultimos 4 bits representan la potencia de 10 a la que se debe
+ * multiplicar el primer numero. Retorna el resultado en formato de string. Ej: [01010100] -> [0101] = 5 , [0100] = 4 -> 5*(10^4). 
+ * Funcion implementada del RFC 1876.
+ * 
  * Datos de entrada 
  * --------------------
- * prec:
+ * prec: entero no signado de 8 bits.
  *
  * Datos de salida 
  * --------------------
- * returns:
+ * returns: puntero a char con el resultado.
  */
 const char* precsize_ntoa(u_int8_t prec);
+
+

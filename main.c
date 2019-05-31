@@ -25,13 +25,122 @@ char dns_servers[1][100];
 
 char portNumber[10];
 
+/*
+ * Funcion:  match 
+ * --------------------
+ * Funcion que compara un string con la expresion regular recibida.
+ *  
+ * Datos de entrada 
+ * --------------------
+ * string: Puntero a char. Corresponde al string que se desea evaluar.
+ * pattern: Puntero a char. Corresponde a la expresion regular a comparar.
+ *
+ * Datos de salida 
+ * --------------------
+ * returns: 1 en caso de que el string cumpla con la expresion regular ecpecificada en pattern, 0 en caso contrario.
+ */
 int match(const char *string, char *pattern);
+
+/*
+ * Funcion:  pantallaHelp 
+ * --------------------
+ * Funcion que recorre el arreglo de parametros recibido en busca de "-h".
+ *  
+ * Datos de entrada 
+ * --------------------
+ * argc: entero que representa la cantidad de elemenos en el arreglo.
+ * argv: arreglo de strings donde se encuentran los parametros.
+ *
+ * Datos de salida 
+ * --------------------
+ * returns: 1 en caso de que el parametro sea encontrado, 0 en caso contrario.
+ */
 int pantallaHelp(int argc, char *argv[]);
+
+/*
+ * Procedimiento: get_query_type 
+ * --------------------
+ * Procedimiento que recorre el arreglo en busca de los parámetros: “-a”, “-mx” y “-loc”, 
+ * excluyentes entre sí.  En caso de encontrar alguno de los parámetros setea la variable 
+ * global del tipo de consulta con el número correspondiente. En caso de haber ambigüedades 
+ * (2 o más parámetros diferentes) o ninguno de estos parámetros,  setea la variable 
+ * global con el tipo de consulta por defecto (“-a” -> T_A -> 1).
+ *
+ * Datos de entrada 
+ * --------------------
+ * argc: entero que representa la cantidad de elemenos en el arreglo.
+ * argv: arreglo de strings donde se encuentran los parametros.
+ *
+ */
 void get_query_type(int argc, char *argv[]);
+
+/*
+ * Procedimiento: get_query 
+ * --------------------
+ * Procedimiento que recorre el arreglo en busca de la consulta brindada al comando. 
+ * Si encuentra una secuencia de caracteres que no comiencen con ‘@’, ‘:’ ni ‘-’, 
+ * entonces setea la variable global con la secuencia encontrada. 
+ * En caso contrario deja la variable global vacía.
+ *
+ * Datos de entrada 
+ * --------------------
+ * argc: entero que representa la cantidad de elemenos en el arreglo.
+ * argv: arreglo de strings donde se encuentran los parametros.
+ *
+ */
 void get_query(int argc, char *argv[]);
+
+/*
+ * Procedimiento: get_r_or_t
+ * --------------------
+ * Procedimiento que Recorre el arreglo en busca de los parámetros “-r” y “-t”, 
+ * correspondientes a consultas recursivas e iterativas respectivamente. 
+ * En caso de encontrar “-t” setea la variable global en 1. 
+ * En cualquier otro caso setea la variable global con el valor por defecto 0, 
+ * correspondiente a una consulta recursiva.
+ *
+ * Datos de entrada 
+ * --------------------
+ * argc: entero que representa la cantidad de elemenos en el arreglo.
+ * argv: arreglo de strings donde se encuentran los parametros.
+ *
+ */
 void get_r_or_t(int argc, char *argv[]);
+
+/*
+ * Procedimiento: get_server_port
+ * --------------------
+ * Procedimiento que Recorre el arreglo en busca de una secuencia de caracteres 
+ * comenzada con ‘@’. Si la encuentra, setea la variable global del servidor al 
+ * que se le hará la consulta con la cadena de caracteres que le sigue hasta 
+ * encontrar ‘:’ o ‘\0’. En el primer caso continuará la lectura del parámetro 
+ * y setea la variable global correspondiente al puerto con los caracteres que siguen. 
+ * En caso contrario el puerto obtendrá el valor por defecto 53. Si no se encuentran 
+ * parámetros comenzados con ‘@’, se setea el servidor de consulta con el servidor DNS local.
+ *
+ * Datos de entrada 
+ * --------------------
+ * argc: entero que representa la cantidad de elemenos en el arreglo.
+ * argv: arreglo de strings donde se encuentran los parametros.
+ *
+ */
 void get_server_port(int argc, char *argv[]);
+
+/*
+ * Procedimiento: get_dns_servers
+ * --------------------
+ * Procedimiento que accede al archivo “/etc/resolv.conf” para obtener el servidor DNS local 
+ * y lo setea a la variable global correspondiente al servidor que se le suministrará la consulta.
+ *
+ */
 void get_dns_servers();
+
+/*
+ * Procedimiento: get_dns_servers
+ * --------------------
+ * Procedimiento que imprime por la salida estándar el texto de ayuda para la utilización del comando.
+ *
+ */
 void printHelp();
 
 int main(int argc, char * argv[])
@@ -230,8 +339,8 @@ void printHelp(){
 											"		puerto		Puerto del servidor DNS al cual se suministrara la consulta.(Por defecto: 53)\n"
 											"		q-type	uno de los siguientes:\n"
 											"			-a		Retorna el IP asociado a la consulta.\n"
-											"			-mx		Retorna el IP asociado a la consulta.\n"
-											"			-loc	Retorna el IP asociado a la consulta.\n"
+											"			-mx		Retorna servidor a cargo de la recepción de correo electrónico del dominio indicado en la consulta.\n"
+											"			-loc	Retorna información relativa a la ubicación geográfica del dominio indicado en la consulta.\n"
 											"			(Por defecto: -a)\n"
 											"		q-opt	uno de los siguientes:\n"
 											"			-r		Consulta recursiva\n"
